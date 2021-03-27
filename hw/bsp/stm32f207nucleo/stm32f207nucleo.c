@@ -26,8 +26,19 @@
 
 #include "../board.h"
 
-#include "stm32f2xx.h"
-#include "stm32f2xx_hal_conf.h"
+#include "stm32f2xx_hal.h"
+
+//--------------------------------------------------------------------+
+// Forward USB interrupt events to TinyUSB IRQ Handler
+//--------------------------------------------------------------------+
+void OTG_FS_IRQHandler(void)
+{
+  tud_int_handler(0);
+}
+
+//--------------------------------------------------------------------+
+// MACRO TYPEDEF CONSTANT ENUM
+//--------------------------------------------------------------------+
 
 #define LED_PORT              GPIOB
 #define LED_PIN               GPIO_PIN_14
@@ -56,7 +67,7 @@ static void all_rcc_clk_enable(void)
   *            APB1 Prescaler                 = 4
   *            APB2 Prescaler                 = 2
   *            HSE Frequency(Hz)              = 8000000
-  *            PLL_M                          = 8
+  *            PLL_M                          = HSE_VALUE/1000000
   *            PLL_N                          = 240
   *            PLL_P                          = 2
   *            PLL_Q                          = 5
@@ -75,7 +86,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLM = HSE_VALUE/1000000;
   RCC_OscInitStruct.PLL.PLLN = 240;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 5;
@@ -93,13 +104,13 @@ void SystemClock_Config(void)
 
 void board_init(void)
 {
+  SystemClock_Config();
+  
   #if CFG_TUSB_OS  == OPT_OS_NONE
   // 1ms tick timer
   SysTick_Config(SystemCoreClock / 1000);
   #endif
 
-  SystemClock_Config();
-  SystemCoreClockUpdate();
 
   all_rcc_clk_enable();
 

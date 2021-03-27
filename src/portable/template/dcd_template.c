@@ -64,15 +64,20 @@ void dcd_set_address (uint8_t rhport, uint8_t dev_addr)
   (void) dev_addr;
 }
 
-// Receive Set Configure request
-void dcd_set_config (uint8_t rhport, uint8_t config_num)
-{
-  (void) rhport;
-  (void) config_num;
-}
-
 // Wake up host
 void dcd_remote_wakeup (uint8_t rhport)
+{
+  (void) rhport;
+}
+
+// Connect by enabling internal pull-up resistor on D+/D-
+void dcd_connect(uint8_t rhport)
+{
+  (void) rhport;
+}
+
+// Disconnect by disabling internal pull-up resistor on D+/D-
+void dcd_disconnect(uint8_t rhport)
 {
   (void) rhport;
 }

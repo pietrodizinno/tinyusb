@@ -49,13 +49,11 @@
   // LPC 11Uxx, 13xx, 15xx use lpcopen
   #include "chip.h"
   #define DCD_REGS        LPC_USB
-  #define DCD_IRQHandler  USB_IRQHandler
 
 #elif CFG_TUSB_MCU == OPT_MCU_LPC51UXX || CFG_TUSB_MCU == OPT_MCU_LPC54XXX || \
       CFG_TUSB_MCU == OPT_MCU_LPC55XX // TODO 55xx has dual usb controllers
   #include "fsl_device_registers.h"
   #define DCD_REGS        USB0
-  #define DCD_IRQHandler  USB0_IRQHandler
 
 #endif
 
@@ -97,7 +95,7 @@ enum {
   CMDSTAT_DEVICE_ADDR_MASK    = TU_BIT(7 )-1,
   CMDSTAT_DEVICE_ENABLE_MASK  = TU_BIT(7 ),
   CMDSTAT_SETUP_RECEIVED_MASK = TU_BIT(8 ),
-  CMDSTAT_DEVICE_CONNECT_MASK = TU_BIT(16), ///< reflect the softconnect only, does not reflect the actual attached state
+  CMDSTAT_DEVICE_CONNECT_MASK = TU_BIT(16), ///< reflect the soft-connect only, does not reflect the actual attached state
   CMDSTAT_DEVICE_SUSPEND_MASK = TU_BIT(17),
   CMDSTAT_CONNECT_CHANGE_MASK = TU_BIT(24),
   CMDSTAT_SUSPEND_CHANGE_MASK = TU_BIT(25),
@@ -200,15 +198,21 @@ void dcd_set_address(uint8_t rhport, uint8_t dev_addr)
   DCD_REGS->DEVCMDSTAT |= dev_addr;
 }
 
-void dcd_set_config(uint8_t rhport, uint8_t config_num)
-{
-  (void) rhport;
-  (void) config_num;
-}
-
 void dcd_remote_wakeup(uint8_t rhport)
 {
   (void) rhport;
+}
+
+void dcd_connect(uint8_t rhport)
+{
+  (void) rhport;
+  DCD_REGS->DEVCMDSTAT |= CMDSTAT_DEVICE_CONNECT_MASK;
+}
+
+void dcd_disconnect(uint8_t rhport)
+{
+  (void) rhport;
+  DCD_REGS->DEVCMDSTAT &= ~CMDSTAT_DEVICE_CONNECT_MASK;
 }
 
 //--------------------------------------------------------------------+
@@ -239,7 +243,7 @@ bool dcd_edpt_open(uint8_t rhport, tusb_desc_endpoint_t const * p_endpoint_desc)
   (void) rhport;
 
   // TODO not support ISO yet
-  if (p_endpoint_desc->bmAttributes.xfer == TUSB_XFER_ISOCHRONOUS) return false;
+  TU_VERIFY(p_endpoint_desc->bmAttributes.xfer != TUSB_XFER_ISOCHRONOUS);
 
   //------------- Prepare Queue Head -------------//
   uint8_t ep_id = ep_addr2id(p_endpoint_desc->bEndpointAddress);
@@ -335,8 +339,10 @@ static void process_xfer_isr(uint32_t int_status)
   }
 }
 
-void DCD_IRQHandler(void)
+void dcd_int_handler(uint8_t rhport)
 {
+  (void) rhport; // TODO support multiple USB on supported mcu such as LPC55s69
+
   uint32_t const cmd_stat = DCD_REGS->DEVCMDSTAT;
 
   uint32_t int_status = DCD_REGS->INTSTAT & DCD_REGS->INTEN;
@@ -351,7 +357,7 @@ void DCD_IRQHandler(void)
     if ( cmd_stat & CMDSTAT_RESET_CHANGE_MASK) // bus reset
     {
       bus_reset();
-      dcd_event_bus_signal(0, DCD_EVENT_BUS_RESET, true);
+      dcd_event_bus_reset(0, TUSB_SPEED_FULL, true);
     }
 
     if (cmd_stat & CMDSTAT_CONNECT_CHANGE_MASK)

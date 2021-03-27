@@ -1,8 +1,8 @@
 # TinyUSB
 
-![tinyUSB_240x100](https://user-images.githubusercontent.com/249515/62646655-f9393200-b978-11e9-9c53-484862f15503.png)
+![TinyUSB](https://user-images.githubusercontent.com/2847802/108847382-a0a6a580-75ad-11eb-96d9-280c79389281.png)
 
-[![Build Status](https://github.com/hathach/tinyusb/workflows/Build/badge.svg)](https://github.com/hathach/tinyusb/actions) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT) [![Coverity](https://img.shields.io/coverity/scan/458.svg)](https://scan.coverity.com/projects/tinyusb)
+[![Build Status](https://github.com/hathach/tinyusb/workflows/Build/badge.svg)](https://github.com/hathach/tinyusb/actions) [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 
 TinyUSB is an open-source cross-platform USB Host/Device stack for embedded system, designed to be memory-safe with no dynamic allocation and thread-safe with all interrupt events are deferred then handled in the non-ISR task function.
 
@@ -11,7 +11,7 @@ TinyUSB is an open-source cross-platform USB Host/Device stack for embedded syst
 ```
 .
 ├── docs            # Documentation
-├── examples        # Sample with Makefile and Segger Embedded build support
+├── examples        # Sample with Makefile build support
 ├── hw
 │   ├── bsp         # Supported boards source files
 │   └── mcu         # Low level mcu core & peripheral drivers
@@ -23,33 +23,43 @@ TinyUSB is an open-source cross-platform USB Host/Device stack for embedded syst
 
 ## Contributors
 
-Special thanks for all the people who had spent their precious time and effort to helped this project so far. Check out
+Special thanks to all the people who spent their precious time and effort to help this project so far. Check out the 
 [CONTRIBUTORS.md](CONTRIBUTORS.md) file for the list of all contributors and their awesome work for the stack.
 
 ## Supported MCUs
 
-The stack supports the following MCUs
+The stack supports the following MCUs:
 
-- **MicroChip:** SAMD21, SAMD51 (device only)
-- **Nordic:** nRF52840, nRF52833
-- **NXP:** 
-  - LPC Series: 11Uxx, 13xx, 175x_6x, 177x_8x, 18xx, 40xx, 43xx, 51Uxx, 54xxx, 55xx
+- **Dialog:** DA1469x
+- **Espressif:** ESP32-S2
+- **MicroChip:** SAMD11, SAMD21, SAMD51, SAME5x, SAMG55
+- **NordicSemi:** nRF52833, nRF52840
+- **Nuvoton:** NUC120, NUC121/NUC125, NUC126, NUC505
+- **NXP:**
   - iMX RT Series: RT1011, RT1015, RT1021, RT1052, RT1062, RT1064
+  - Kinetis: KL25
+  - LPC Series: 11Uxx, 13xx, 175x_6x, 177x_8x, 18xx, 40xx, 43xx, 51Uxx, 54xxx, 55xx
+- **Raspberry Pi:** RP2040
 - **Sony:** CXD56
-- **ST:** STM32 series: L0, F0, F1, F2, F3, F4, F7, H7 (device only)
+- **ST:** STM32 series: L0, F0, F1, F2, F3, F4, F7, H7 both FullSpeed and HighSpeed
+- **TI:** MSP430
 - **[ValentyUSB](https://github.com/im-tomu/valentyusb)** eptri
-- **Nuvoton:** NUC121/NUC125, NUC126
 
 [Here is the list of supported Boards](docs/boards.md) that can be used with provided examples.
 
 ## Device Stack
 
-Support multiple device configurations by dynamically changing usb descriptors. Low power functions such as suspend, resume and remote wakeup. Following device classes are supported:
+Supports multiple device configurations by dynamically changing usb descriptors. Low power functions such like suspend, resume, and remote wakeup. Following device classes are supported:
 
+- USB Audio Class 2.0 (UAC2) still work in progress
+- Bluetooth Host Controller Interface (BTH HCI)
 - Communication Class (CDC)
+- Device Firmware Update (DFU): only Runtinme 
 - Human Interface Device (HID): Generic (In & Out), Keyboard, Mouse, Gamepad etc ...
 - Mass Storage Class (MSC): with multiple LUNs
 - Musical Instrument Digital Interface (MIDI)
+- Network with RNDIS, CDC-ECM (work in progress)
+- USB Test and Measurement Class (USBTMC)
 - Vendor-specific class support with generic In & Out endpoints. Can be used with MS OS 2.0 compatible descriptor to load winUSB driver without INF file.
 - [WebUSB](https://github.com/WICG/webusb) with vendor-specific class
 
@@ -59,23 +69,19 @@ Support multiple device configurations by dynamically changing usb descriptors. 
 
 - Human Interface Device (HID): Keyboard, Mouse, Generic
 - Mass Storage Class (MSC)
-- Hub currently only support 1 level of hub (due to my laziness)
+- Hub currently only supports 1 level of hub (due to my laziness)
 
-## OS Abtraction layer
+## OS Abstraction layer
 
-TinyUSB is completely thread-safe by pushing all ISR events into a central queue, then process it later in the non-ISR context task function. It also uses semphore/mutex to access shared resource such as CDC FIFO. Therefore the stack needs to use some of OS's basic APIs. Following OSes are already supported out of the box.
+TinyUSB is completely thread-safe by pushing all ISR events into a central queue, then process it later in the non-ISR context task function. It also uses semaphore/mutex to access shared resources such as CDC FIFO. Therefore the stack needs to use some of OS's basic APIs. Following OSes are already supported out of the box.
 
 - **No OS** : Disabling USB IRQ is used as way to provide mutex
 - **FreeRTOS**
 - **Mynewt** Due to the newt package build system, Mynewt examples are better to be on its [own repo](https://github.com/hathach/mynewt-tinyusb-example) 
 
-## Compiler & IDE
-
-The stack is developed with GCC compiler, and should be compilable with others. Folder `examples` provide Makefile and Segger Embedded Studio build support. [Here is instruction to build example](examples/readme.md).
-
 ## Getting Started
 
-[Here is the details for getting started](docs/getting_started.md) with the stack.
+[Here are the details for getting started](docs/getting_started.md) with the stack.
 
 ## Porting
 
@@ -83,17 +89,19 @@ Want to help add TinyUSB support for a new MCU? Read [here](docs/porting.md) for
 
 ## License
 
-MIT license for all TinyUSB sources `src` folder, [Full license is here](LICENSE). However each file is individually licensed especially those in `lib` and `hw/mcu` folder. Please make sure you understand all the license term for files you use in your project.
+MIT license for all TinyUSB sources `src` folder, [Full license is here](LICENSE). However, each file is individually licensed especially those in `lib` and `hw/mcu` folder. Please make sure you understand all the license term for files you use in your project.
 
 ## Uses
 
 TinyUSB is currently used by these other projects:
 
-* [Adafruit nRF52 Arduino](https://github.com/adafruit/Adafruit_nRF52_Arduino)
-* [Adafruit nRF52 Bootloader](https://github.com/adafruit/Adafruit_nRF52_Bootloader)
-* [Adafruit SAMD Arduino](https://github.com/adafruit/ArduinoCore-samd)
-* [CircuitPython](https://github.com/adafruit/circuitpython)
-* [MicroPython](https://github.com/micropython/micropython)
-* [TinyUSB Arduino Library](https://github.com/adafruit/Adafruit_TinyUSB_Arduino)
-
-Let's me know if your project also uses TinyUSB and want to share.
+- [Adafruit nRF52 Arduino](https://github.com/adafruit/Adafruit_nRF52_Arduino)
+- [Adafruit nRF52 Bootloader](https://github.com/adafruit/Adafruit_nRF52_Bootloader)
+- [Adafruit SAMD Arduino](https://github.com/adafruit/ArduinoCore-samd)
+- [CircuitPython](https://github.com/adafruit/circuitpython)
+- [Espressif IDF](https://github.com/espressif/esp-idf)
+- [MicroPython](https://github.com/micropython/micropython)
+- [mynewt](https://mynewt.apache.org)
+- [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk)
+- [TinyUF2 Bootloader](https://github.com/adafruit/tinyuf2)
+- [TinyUSB Arduino Library](https://github.com/adafruit/Adafruit_TinyUSB_Arduino)

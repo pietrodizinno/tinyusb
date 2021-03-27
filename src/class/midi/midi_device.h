@@ -36,8 +36,14 @@
 //--------------------------------------------------------------------+
 // Class Driver Configuration
 //--------------------------------------------------------------------+
-#ifndef CFG_TUD_MIDI_EPSIZE
-#define CFG_TUD_MIDI_EPSIZE 64
+
+#if !defined(CFG_TUD_MIDI_EP_BUFSIZE) && defined(CFG_TUD_MIDI_EPSIZE)
+  #warning CFG_TUD_MIDI_EPSIZE is renamed to CFG_TUD_MIDI_EP_BUFSIZE, please update to use the new name
+  #define CFG_TUD_MIDI_EP_BUFSIZE    CFG_TUD_MIDI_EPSIZE
+#endif
+
+#ifndef CFG_TUD_MIDI_EP_BUFSIZE
+  #define CFG_TUD_MIDI_EP_BUFSIZE     (TUD_OPT_HIGH_SPEED ? 512 : 64)
 #endif
 
 #ifdef __cplusplus
@@ -54,23 +60,28 @@
 // CFG_TUD_MIDI > 1
 //--------------------------------------------------------------------+
 bool     tud_midi_n_mounted    (uint8_t itf);
-uint32_t tud_midi_n_available  (uint8_t itf, uint8_t jack_id);
-uint32_t tud_midi_n_read       (uint8_t itf, uint8_t jack_id, void* buffer, uint32_t bufsize);
-void     tud_midi_n_read_flush (uint8_t itf, uint8_t jack_id);
-uint32_t tud_midi_n_write      (uint8_t itf, uint8_t jack_id, uint8_t const* buffer, uint32_t bufsize);
+uint32_t tud_midi_n_available  (uint8_t itf, uint8_t cable_num);
+uint32_t tud_midi_n_read       (uint8_t itf, uint8_t cable_num, void* buffer, uint32_t bufsize);
+void     tud_midi_n_read_flush (uint8_t itf, uint8_t cable_num);
+uint32_t tud_midi_n_write      (uint8_t itf, uint8_t cable_num, uint8_t const* buffer, uint32_t bufsize);
 
 static inline
-uint32_t tud_midi_n_write24    (uint8_t itf, uint8_t jack_id, uint8_t b1, uint8_t b2, uint8_t b3);
+uint32_t tud_midi_n_write24    (uint8_t itf, uint8_t cable_num, uint8_t b1, uint8_t b2, uint8_t b3);
+
+bool tud_midi_n_receive        (uint8_t itf, uint8_t packet[4]);
+bool tud_midi_n_send           (uint8_t itf, uint8_t const packet[4]);
 
 //--------------------------------------------------------------------+
-// Application API (Interface0)
+// Application API (Single Interface)
 //--------------------------------------------------------------------+
 static inline bool     tud_midi_mounted    (void);
 static inline uint32_t tud_midi_available  (void);
 static inline uint32_t tud_midi_read       (void* buffer, uint32_t bufsize);
 static inline void     tud_midi_read_flush (void);
-static inline uint32_t tud_midi_write      (uint8_t jack_id, uint8_t const* buffer, uint32_t bufsize);
-static inline uint32_t tudi_midi_write24   (uint8_t jack_id, uint8_t b1, uint8_t b2, uint8_t b3);
+static inline uint32_t tud_midi_write      (uint8_t cable_num, uint8_t const* buffer, uint32_t bufsize);
+static inline uint32_t tud_midi_write24    (uint8_t cable_num, uint8_t b1, uint8_t b2, uint8_t b3);
+static inline bool     tud_midi_receive    (uint8_t packet[4]);
+static inline bool     tud_midi_send       (uint8_t const packet[4]);
 
 //--------------------------------------------------------------------+
 // Application Callback API (weak is optional)
@@ -81,10 +92,10 @@ TU_ATTR_WEAK void tud_midi_rx_cb(uint8_t itf);
 // Inline Functions
 //--------------------------------------------------------------------+
 
-static inline uint32_t tud_midi_n_write24 (uint8_t itf, uint8_t jack_id, uint8_t b1, uint8_t b2, uint8_t b3)
+static inline uint32_t tud_midi_n_write24 (uint8_t itf, uint8_t cable_num, uint8_t b1, uint8_t b2, uint8_t b3)
 {
   uint8_t msg[3] = { b1, b2, b3 };
-  return tud_midi_n_write(itf, jack_id, msg, 3);
+  return tud_midi_n_write(itf, cable_num, msg, 3);
 }
 
 static inline bool tud_midi_mounted (void)
@@ -107,26 +118,35 @@ static inline void tud_midi_read_flush (void)
   tud_midi_n_read_flush(0, 0);
 }
 
-static inline uint32_t tud_midi_write (uint8_t jack_id, uint8_t const* buffer, uint32_t bufsize)
+static inline uint32_t tud_midi_write (uint8_t cable_num, uint8_t const* buffer, uint32_t bufsize)
 {
-  return tud_midi_n_write(0, jack_id, buffer, bufsize);
+  return tud_midi_n_write(0, cable_num, buffer, bufsize);
 }
 
-static inline uint32_t tudi_midi_write24 (uint8_t jack_id, uint8_t b1, uint8_t b2, uint8_t b3)
+static inline uint32_t tud_midi_write24 (uint8_t cable_num, uint8_t b1, uint8_t b2, uint8_t b3)
 {
   uint8_t msg[3] = { b1, b2, b3 };
-  return tud_midi_write(jack_id, msg, 3);
+  return tud_midi_write(cable_num, msg, 3);
+}
+
+static inline bool tud_midi_receive (uint8_t packet[4])
+{
+  return tud_midi_n_receive(0, packet);
+}
+
+static inline bool tud_midi_send (uint8_t const packet[4])
+{
+  return tud_midi_n_send(0, packet);
 }
 
 //--------------------------------------------------------------------+
 // Internal Class Driver API
 //--------------------------------------------------------------------+
-void midid_init             (void);
-void midid_reset            (uint8_t rhport);
-bool midid_open             (uint8_t rhport, tusb_desc_interface_t const * itf_desc, uint16_t *p_length);
-bool midid_control_request  (uint8_t rhport, tusb_control_request_t const * request);
-bool midid_control_complete (uint8_t rhport, tusb_control_request_t const * request);
-bool midid_xfer_cb          (uint8_t rhport, uint8_t edpt_addr, xfer_result_t result, uint32_t xferred_bytes);
+void     midid_init            (void);
+void     midid_reset           (uint8_t rhport);
+uint16_t midid_open            (uint8_t rhport, tusb_desc_interface_t const * itf_desc, uint16_t max_len);
+bool     midid_control_xfer_cb (uint8_t rhport, uint8_t stage, tusb_control_request_t const * request);
+bool     midid_xfer_cb         (uint8_t rhport, uint8_t edpt_addr, xfer_result_t result, uint32_t xferred_bytes);
 
 #ifdef __cplusplus
  }
